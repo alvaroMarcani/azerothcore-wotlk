@@ -4,6 +4,18 @@ Este documento lista todas las modificaciones custom sobre AzerothCore para el p
 
 ## Core Changes
 
+### 7. Cross-Faction Trade — Same group/raid bypass
+
+**File:** `src/server/game/Handlers/TradeHandler.cpp`
+
+Allows cross-faction trading when both players are in the same party or raid group.
+Previously the server rejected trade between Alliance and Horde with `TRADE_STATUS_WRONG_FACTION`
+unless the initiator had `RBAC_PERM_ALLOW_TWO_SIDE_TRADE` (GM permission 51).
+
+**Change:** Added `&& !_player->IsInSameRaidWith(pOther)` to the faction check condition.
+
+## Core Changes
+
 ### 1. ChannelMgr — `SetChannel()` method
 
 **Files:** `src/server/game/Chat/Channels/ChannelMgr.cpp`, `src/server/game/Chat/Channels/ChannelMgr.h`

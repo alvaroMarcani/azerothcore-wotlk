@@ -159,6 +159,14 @@ Channel* ChannelMgr::GetChannel(std::string const& name, Player* player, bool pk
     return i->second;
 }
 
+void ChannelMgr::SetChannel(std::string const& name, Channel* channel)
+{
+    std::wstring wname;
+    Utf8toWStr(name, wname);
+    wstrToLower(wname);
+    channels[wname] = channel;
+}
+
 uint32 ChannelMgr::_channelIdMax = 0;
 ChannelMgr::ChannelRightsMap ChannelMgr::channels_rights;
 ChannelRights ChannelMgr::channelRightsEmpty;

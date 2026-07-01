@@ -1033,7 +1033,7 @@ class spell_wintergrasp_portal : public SpellScript
         PreventHitDefaultEffect(effIndex);
         Player* target = GetHitPlayer();
         Battlefield* wintergrasp = sBattlefieldMgr->GetBattlefieldByBattleId(BATTLEFIELD_BATTLEID_WG);
-        if (!wintergrasp || !target || target->GetLevel() < 75 || (wintergrasp->GetDefenderTeam() != target->GetTeamId()))
+        if (!wintergrasp || !target || target->GetLevel() < 75)
             return;
 
         target->CastSpell(target, SPELL_TELEPORT_TO_FORTRESS, true);

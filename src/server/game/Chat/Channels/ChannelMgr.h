@@ -40,6 +40,7 @@ public:
 
     Channel* GetJoinChannel(std::string const& name, uint32 channel_id);
     Channel* GetChannel(std::string const& name, Player* p, bool pkt = true);
+    void SetChannel(std::string const& name, Channel* channel);
     static void LoadChannels();
 
     static void LoadChannelRights();

@@ -64,6 +64,8 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/conf/config.cmake")
     include(conf/config.cmake)
 endif()
 
+include(AutoCollect)
+
 #
 # Loading dyn modules
 #
@@ -100,7 +102,6 @@ endif()
 include(ConfigureBaseTargets)
 include(CheckPlatform)
 include(GroupSources)
-include(AutoCollect)
 include(ConfigInstall)
 
 CU_RUN_HOOK("AFTER_LOAD_CMAKE_MODULES")

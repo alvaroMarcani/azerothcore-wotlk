@@ -232,7 +232,7 @@ public:
             std::vector<ObjectGuid::LowType> toRespawn;
             for (auto const& [spawnId, respawnTime] : map->GetCreatureRespawnTimes())
                 if (CreatureData const* data = sObjectMgr->GetCreatureData(spawnId))
-                    if (data->id1 == NPC_RISEN_ARCHMAGE || data->id1 == NPC_VALITHRIA_DREAMWALKER)
+                    if (data->id == NPC_RISEN_ARCHMAGE || data->id == NPC_VALITHRIA_DREAMWALKER)
                         toRespawn.push_back(spawnId);
 
             time_t newRespawnTime = GameTime::GetGameTime().count() + 11;

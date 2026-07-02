@@ -51,6 +51,16 @@ On wipe reset: if Falric or Marwyn are dead they now get `Respawn()` + `SetVisib
 
 **Diff:** +12 lines.
 
+### 4b. Halls of Reflection — Boss immunity fix (SetImmuneToAll)
+
+**Files:** `src/server/scripts/Northrend/FrozenHalls/HallsOfReflection/boss_falric.cpp`, `boss_marwyn.cpp`
+
+Both bosses call `SetImmuneToAll(true)` in `Reset()` but only `SetImmuneToPC(false)` in `DoAction(1)`. This leaves `UNIT_FLAG_IMMUNE_TO_NPC` set permanently, which after a wipe can prevent `SetInCombatWithZone()` from properly engaging the boss (inconsistent immune state).
+
+**Fix:** Changed `me->SetImmuneToPC(false)` → `me->SetImmuneToAll(false)` in both `DoAction(1)`.
+
+**Diff:** 2 lines (1 per boss).
+
 ### 5. CMakeLists.txt — AutoCollect include moved earlier
 
 **File:** `CMakeLists.txt`

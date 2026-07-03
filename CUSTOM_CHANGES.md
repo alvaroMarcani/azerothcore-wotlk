@@ -43,23 +43,17 @@ Three fixes:
 
 **Diff:** +57 lines, new include `<GameTime.h>`.
 
-### 4. Halls of Reflection — Falric & Marwyn wipe respawn
-
-**File:** `src/server/scripts/Northrend/FrozenHalls/HallsOfReflection/instance_halls_of_reflection.cpp`
-
-On wipe reset: if Falric or Marwyn are dead they now get `Respawn(true)` (force respawn, bypasses BossAI::CanRespawn which blocks when DONE) + `SetVisible(false)`, and `_falricPhaseComplete` resets to `false` so the wave sequence can restart from scratch.
-
-**Diff:** +12 lines.
-
-### 4b. Halls of Reflection — Boss immunity fix (SetImmuneToAll + ClearUnitState EVADE)
+### 4. Halls of Reflection — Boss immunity + evade fix
 
 **Files:** `src/server/scripts/Northrend/FrozenHalls/HallsOfReflection/boss_falric.cpp`, `boss_marwyn.cpp`
 
+**Archivo:** `instance_halls_of_reflection.cpp` — **REVERTIDO a codigo original.**
+
 Two fixes in `DoAction(1)`:
 1. **`me->SetImmuneToPC(false)` → `me->SetImmuneToAll(false)`**: Reset() sets `SetImmuneToAll(true)` (both IMMUNE_TO_PC + IMMUNE_TO_NPC), but DoAction(1) only cleared IMMUNE_TO_PC.
-2. **Added `me->ClearUnitState(UNIT_STATE_EVADE)`**: HandleWaveWipe calls EnterEvadeMode() which sets UNIT_STATE_EVADE. DoZoneInCombat() checks IsInEvadeMode() and returns immediately — boss never engages combat. ClearEvadeState fixes this.
+2. **Added `me->ClearUnitState(UNIT_STATE_EVADE)`**: HandleWaveWipe calls EnterEvadeMode() which sets UNIT_STATE_EVADE. DoZoneInCombat() checks IsInEvadeMode() and returns immediately — boss never engages combat after wipe.
 
-**Diff:** 4 lines (2 per boss).
+**Diff:** 4 lines (2 per boss). Instance script unchanged from upstream.
 
 ### 5. CMakeLists.txt — AutoCollect include moved earlier
 

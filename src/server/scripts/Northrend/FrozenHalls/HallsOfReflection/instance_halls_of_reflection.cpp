@@ -229,7 +229,11 @@ public:
             case NPC_WAVE_PRIEST:
             case NPC_WAVE_MAGE:
                 if (_trashCounter < NUM_OF_TRASH)
+                {
                     _trashGUID[_trashCounter++] = creature->GetGUID();
+                    if (_trashCounter == 1)
+                        LOG_ERROR("scripts", "HoR DEBUG: first trash GUID={} entry={} alive={}", creature->GetGUID().ToString(), creature->GetEntry(), creature->IsAlive());
+                }
                 if (GetBossState(DATA_MARWYN) != DONE && !creature->IsAlive())
                     creature->Respawn();
                 creature->SetVisible(false);
@@ -701,13 +705,21 @@ public:
             _waveNumber = 5;
         }
 
+        uint8 visibleCheck = 0, validCheck = 0;
         for (uint8 i = 0; i < NUM_OF_TRASH; ++i)
-            if (!_trashActive[i])
-                if (Creature* c = instance->GetCreature(_trashGUID[i]))
+        {
+            if (Creature* c = instance->GetCreature(_trashGUID[i]))
+            {
+                ++validCheck;
+                if (!_trashActive[i])
                 {
                     c->SetVisible(true);
                     c->CastSpell(c, SPELL_WELL_OF_SOULS_VISUAL, false);
+                    ++visibleCheck;
                 }
+            }
+        }
+        LOG_ERROR("scripts", "HoR DEBUG: RandomizeCompositions - validGUIDs={}/{} visible={} _trashCounter={} _waveNumber={}", validCheck, NUM_OF_TRASH, visibleCheck, _trashCounter, _waveNumber);
     }
 
     void StartNextWave()

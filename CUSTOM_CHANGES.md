@@ -47,7 +47,7 @@ Three fixes:
 
 **File:** `src/server/scripts/Northrend/FrozenHalls/HallsOfReflection/instance_halls_of_reflection.cpp`
 
-On wipe reset: if Falric or Marwyn are dead they now get `Respawn()` + `SetVisible(false)`, and `_falricPhaseComplete` resets to `false` so the wave sequence can restart from scratch.
+On wipe reset: if Falric or Marwyn are dead they now get `Respawn(true)` (force respawn, bypasses BossAI::CanRespawn which blocks when DONE) + `SetVisible(false)`, and `_falricPhaseComplete` resets to `false` so the wave sequence can restart from scratch.
 
 **Diff:** +12 lines.
 

@@ -701,13 +701,16 @@ public:
             _waveNumber = 5;
         }
 
+        uint8 visibleCount = 0;
         for (uint8 i = 0; i < NUM_OF_TRASH; ++i)
             if (!_trashActive[i])
                 if (Creature* c = instance->GetCreature(_trashGUID[i]))
                 {
                     c->SetVisible(true);
                     c->CastSpell(c, SPELL_WELL_OF_SOULS_VISUAL, false);
+                    ++visibleCount;
                 }
+        LOG_INFO("scripts", "HoR: RandomizeCompositionsAndShow - made {} trash visible, _trashCounter={}, _waveNumber={}", visibleCount, _trashCounter, _waveNumber);
     }
 
     void StartNextWave()
@@ -759,6 +762,7 @@ public:
             else if (_waveNumber <= 4)
                 numToActivate = 4;
             _remainingTrashKills += numToActivate;
+            uint8 activated = 0;
             for (uint8 i = 0; i < numToActivate; ++i)
             {
                 uint32 entry = _chosenComposition[_waveNumber - (_waveNumber > 5 ? 2 : 1)][i];
@@ -772,9 +776,12 @@ public:
                                 c->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                                 c->SetImmuneToAll(false);
                                 c->AI()->DoAction(1);
+                                ++activated;
                                 break;
                             }
             }
+            LOG_INFO("scripts", "HoR: StartNextWave wave={} - activated {}/{} trash (entry from comp[{}]), _remainingTrashKills={}",
+                _waveNumber, activated, numToActivate, _waveNumber - (_waveNumber > 5 ? 2 : 1), _remainingTrashKills);
         }
     }
 
@@ -810,14 +817,14 @@ public:
         {
             falric->AI()->EnterEvadeMode();
             if (!falric->IsAlive())
-                falric->Respawn();
+                falric->Respawn(true);
             falric->SetVisible(false);
         }
         if (Creature* marwyn = GetCreature(DATA_MARWYN))
         {
             marwyn->AI()->EnterEvadeMode();
             if (!marwyn->IsAlive())
-                marwyn->Respawn();
+                marwyn->Respawn(true);
             marwyn->SetVisible(false);
         }
         _falricPhaseComplete = false;

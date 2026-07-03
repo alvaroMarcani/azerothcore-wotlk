@@ -216,6 +216,7 @@ public:
                 creature->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
                 break;
             case NPC_FALRIC:
+                LOG_ERROR("scripts", "HoR DEBUG: OnCreatureCreate FALRIC entry={} GUID={} alive={}", creature->GetEntry(), creature->GetGUID().ToString(), creature->IsAlive());
                 creature->SetVisible(false);
                 creature->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
                 break;

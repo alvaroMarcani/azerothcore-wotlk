@@ -79,6 +79,7 @@ struct boss_falric : public BossAI
             {
                 _startingFight = false;
                 me->SetImmuneToAll(false);
+                me->ClearUnitState(UNIT_STATE_EVADE);
                 me->SetInCombatWithZone();
             }, 8s);
         }

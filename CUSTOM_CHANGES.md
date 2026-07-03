@@ -51,15 +51,15 @@ On wipe reset: if Falric or Marwyn are dead they now get `Respawn()` + `SetVisib
 
 **Diff:** +12 lines.
 
-### 4b. Halls of Reflection — Boss immunity fix (SetImmuneToAll)
+### 4b. Halls of Reflection — Boss immunity fix (SetImmuneToAll + ClearUnitState EVADE)
 
 **Files:** `src/server/scripts/Northrend/FrozenHalls/HallsOfReflection/boss_falric.cpp`, `boss_marwyn.cpp`
 
-Both bosses call `SetImmuneToAll(true)` in `Reset()` but only `SetImmuneToPC(false)` in `DoAction(1)`. This leaves `UNIT_FLAG_IMMUNE_TO_NPC` set permanently, which after a wipe can prevent `SetInCombatWithZone()` from properly engaging the boss (inconsistent immune state).
+Two fixes in `DoAction(1)`:
+1. **`me->SetImmuneToPC(false)` → `me->SetImmuneToAll(false)`**: Reset() sets `SetImmuneToAll(true)` (both IMMUNE_TO_PC + IMMUNE_TO_NPC), but DoAction(1) only cleared IMMUNE_TO_PC.
+2. **Added `me->ClearUnitState(UNIT_STATE_EVADE)`**: HandleWaveWipe calls EnterEvadeMode() which sets UNIT_STATE_EVADE. DoZoneInCombat() checks IsInEvadeMode() and returns immediately — boss never engages combat. ClearEvadeState fixes this.
 
-**Fix:** Changed `me->SetImmuneToPC(false)` → `me->SetImmuneToAll(false)` in both `DoAction(1)`.
-
-**Diff:** 2 lines (1 per boss).
+**Diff:** 4 lines (2 per boss).
 
 ### 5. CMakeLists.txt — AutoCollect include moved earlier
 

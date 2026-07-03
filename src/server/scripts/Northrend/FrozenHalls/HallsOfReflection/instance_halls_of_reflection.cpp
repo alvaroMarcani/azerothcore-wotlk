@@ -807,18 +807,10 @@ public:
                 }
         std::fill(std::begin(_trashActive), std::end(_trashActive), false);
         if (Creature* falric = GetCreature(DATA_FALRIC))
-        {
             falric->AI()->EnterEvadeMode();
-            if (!falric->IsAlive())
-                falric->Respawn(true);
-        }
         if (Creature* marwyn = GetCreature(DATA_MARWYN))
-        {
             marwyn->AI()->EnterEvadeMode();
-            if (!marwyn->IsAlive())
-                marwyn->Respawn(true);
-        }
-        _falricPhaseComplete = false;
+
         _waveResumeTimer = 5000;
         _waveResumeStep = 2;
         _remainingTrashKills = 0;

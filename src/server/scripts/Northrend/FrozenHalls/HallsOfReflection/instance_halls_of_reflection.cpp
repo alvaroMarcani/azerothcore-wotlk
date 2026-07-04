@@ -824,6 +824,7 @@ public:
         if (Creature* marwyn = GetCreature(DATA_MARWYN))
             marwyn->AI()->EnterEvadeMode();
 
+        _falricPhaseComplete = false;
         _waveResumeTimer = 5000;
         _waveResumeStep = 2;
         _remainingTrashKills = 0;

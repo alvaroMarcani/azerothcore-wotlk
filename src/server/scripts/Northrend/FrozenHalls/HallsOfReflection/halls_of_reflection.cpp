@@ -716,8 +716,6 @@ public:
                     instance->SetData(ACTION_SHOW_TRASH, 1);
                     instance->HandleGameObject(GO_ARTHAS_DOOR, true);
                 }
-                else
-                    LOG_ERROR("scripts", "HoR DEBUG: EVENT_INTRO_LK_8 - Falric IS NULL! DATA_FALRIC guid lookup failed");
                 events.ScheduleEvent(EVENT_INTRO_LK_9, 6s);
                 break;
 

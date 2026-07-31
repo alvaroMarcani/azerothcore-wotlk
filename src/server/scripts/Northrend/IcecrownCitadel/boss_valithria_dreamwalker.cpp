@@ -345,6 +345,16 @@ public:
             if (me->HealthAbovePctHealed(100, heal) && !_done)
             {
                 _done = true;
+                // CUSTOM: SetBossState(DONE) was missing upstream — boss stayed IN_PROGRESS
+                // forever. On re-entry ReadSaveDataBossStates converted IN_PROGRESS→NOT_STARTED
+                // but Valithria's DespawnOrUnsummon(4s) (Dream Slip) used the DB spawntimesecs of
+                // 604800s (7d) for the respawn timer, which SaveCreatureRespawnTime clamped to
+                // now+YEAR (instance reset guard). Result: Valithria never reappeared until a full
+                // instance reset.
+                // To revert: delete this line. Side effects if removed: weekly quest NPC 38589
+                // won't show, Sindragosa teleport gate won't open, Lich King availability won't
+                // count this boss as cleared.
+                _instance->SetBossState(DATA_VALITHRIA_DREAMWALKER, DONE);
                 Talk(SAY_VALITHRIA_SUCCESS);
                 _instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
                 me->RemoveAurasDueToSpell(SPELL_CORRUPTION_VALITHRIA);

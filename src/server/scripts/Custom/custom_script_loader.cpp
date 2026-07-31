@@ -20,7 +20,17 @@
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
+void AddSC_boss_nerubian_devastador();
+void AddSC_boss_nerubian_viuda_cristal();
+void AddSC_boss_nerubian_golem_runico();
+void AddSC_boss_nerubian_profeta_sombrio();
+void AddSC_boss_nerubian_draco_tempestad();
+
 void AddCustomScripts()
 {
-    // MyExampleScript()
+    AddSC_boss_nerubian_devastador();
+    AddSC_boss_nerubian_viuda_cristal();
+    AddSC_boss_nerubian_golem_runico();
+    AddSC_boss_nerubian_profeta_sombrio();
+    AddSC_boss_nerubian_draco_tempestad();
 }

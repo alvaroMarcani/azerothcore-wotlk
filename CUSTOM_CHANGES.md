@@ -100,6 +100,23 @@ Each boss has 3 phases (75%/50%/25%) with one unique mechanic:
 
 **Diff:** ~20 lines changed per file (1 constant + `player->AddItem(BAG_REWARD_ENTRY, 1)`).
 
+### 10. World Boss Rework — Respawn fix + new mechanics + bag gold (2026-07-31)
+
+**Files:** all 5 `src/server/scripts/Custom/boss_nerubian_*.cpp`
+
+Three-part change:
+
+1. **Bag gold:** `GiveClassBag()` in all 5 scripts now also grants `player->ModifyMoney(urand(2,500,000, 5,000,000))` = 250-500g per participant (item loot templates cannot give gold). Image v26.
+2. **Boss-specific mechanics:**
+   - **Devastador (902006):** new berserk after 8 min (`SPELL_ENRAGE` 33653, one-shot event) + whelps also summoned at the 75% phase (was 50/25 only).
+   - **Viuda (902020):** web-crystal heal raised 3% → 5% hp/s; new `Volatile Infection` (24928, Emeriss-style stacking poison DoT) on the tank every 90-120s.
+   - **Golem (902021):** new Lethon + Doomwalker mechanics — `Shadow Bolt Whirl` (24834) self-aura on engage (reuses registered `spell_shadow_bolt_whirl` spellscript), `Draw Spirit` (24811) at 50% summoning `NPC_SPIRIT_SHADE` (15261, AI from emerald dragons) at each hit target, and `Overrun` (32636) charge+knockback every 15-20s.
+   - **Profeta (902022):** new `Lightning Wave` (24819, Ysondre chain lightning, re-themed "Onda del Vacío") every 10-20s; void adds now summoned at all three phase transitions (75/50/25%) scaled to half the raid (min 1, max 15, Ysondre-style).
+   - **Draco (902023):** new Taerar-style banish at 75/50/25% — summons 3 `Espiritu de Tormenta` (NPC 902024), boss becomes `UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE` + `REACT_PASSIVE` for **12s** (or until the 3 adds die); new `Arcane Blast` (24857) every 7-12s. Overrides `UpdateAI` to handle the banish state.
+3. **SQL (applied via `2026_07_31_00_worldboss_rework.sql`):** respawn 15 min (`spawntimesecs` 900), game events 201/203/204/205/206 extended to 26h so last respawn never crosses the event window, Draco relocated from Felwood river-level to valid Winterspring ground, HP/damage bumps (Devastador 240/45, Golem 240, Profeta 240), new NPC 902024 + materials/Naxx loot rows.
+
+**Diff:** ~10-40 lines per .cpp (largest: Draco +~75).
+
 ### 6. Submodules added
 
 **File:** `.gitmodules`

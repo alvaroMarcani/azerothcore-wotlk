@@ -345,16 +345,10 @@ public:
             if (me->HealthAbovePctHealed(100, heal) && !_done)
             {
                 _done = true;
-                // CUSTOM: SetBossState(DONE) was missing upstream — boss stayed IN_PROGRESS
-                // forever. On re-entry ReadSaveDataBossStates converted IN_PROGRESS→NOT_STARTED
-                // but Valithria's DespawnOrUnsummon(4s) (Dream Slip) used the DB spawntimesecs of
-                // 604800s (7d) for the respawn timer, which SaveCreatureRespawnTime clamped to
-                // now+YEAR (instance reset guard). Result: Valithria never reappeared until a full
-                // instance reset.
-                // To revert: delete this line. Side effects if removed: weekly quest NPC 38589
-                // won't show, Sindragosa teleport gate won't open, Lich King availability won't
-                // count this boss as cleared.
-                _instance->SetBossState(DATA_VALITHRIA_DREAMWALKER, DONE);
+                // CUSTOM: boss state DONE is set in the EVENT_DREAM_SLIP handler (see UpdateAI).
+                // Setting it here made UpdateAI's IN_PROGRESS guard return before EVENT_DREAM_SLIP
+                // could execute: SPELL_DREAM_SLIP never landed, so the Lich King controller never
+                // cast SPELL_SPAWN_CHEST and no loot chest ever spawned (no loot, no despawn).
                 Talk(SAY_VALITHRIA_SUCCESS);
                 _instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
                 me->RemoveAurasDueToSpell(SPELL_CORRUPTION_VALITHRIA);
@@ -468,6 +462,19 @@ public:
                     break;
                 case EVENT_DREAM_SLIP:
                     me->CastSpell(me, SPELL_DREAM_SLIP, false);
+                    // CUSTOM: SetBossState(DONE) was missing upstream — boss stayed IN_PROGRESS
+                    // forever. On re-entry ReadSaveDataBossStates converted IN_PROGRESS→NOT_STARTED
+                    // but Valithria's DespawnOrUnsummon(4s) (Dream Slip) used the DB spawntimesecs of
+                    // 604800s (7d) for the respawn timer, which SaveCreatureRespawnTime clamped to
+                    // now+YEAR (instance reset guard). Result: Valithria never reappeared until a full
+                    // instance reset.
+                    // Set it here (not in HealReceived) so the IN_PROGRESS guard above cannot block
+                    // this event: if it never executes, SPELL_DREAM_SLIP never lands and the loot
+                    // chest (SPELL_SPAWN_CHEST, cast on SpellHit) never spawns.
+                    // To revert: delete this line. Side effects if removed: weekly quest NPC 38589
+                    // won't show, Sindragosa teleport gate won't open, Lich King availability won't
+                    // count this boss as cleared.
+                    _instance->SetBossState(DATA_VALITHRIA_DREAMWALKER, DONE);
                     break;
                 default:
                     break;

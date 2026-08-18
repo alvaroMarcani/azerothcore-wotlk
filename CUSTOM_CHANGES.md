@@ -37,7 +37,7 @@ Removed the defender-only check from `spell_wintergrasp_portal`. Previously: `wi
 **File:** `src/server/scripts/Northrend/IcecrownCitadel/boss_valithria_dreamwalker.cpp`
 
 Four fixes:
-- **SetBossState(DONE) on kill:** Boss state was never set to DONE after a successful encounter. `HealReceived()` at 100% health now calls `_instance->SetBossState(DATA_VALITHRIA_DREAMWALKER, DONE)`. Without this, the state stayed IN_PROGRESS; on re-entry `ReadSaveDataBossStates` converted IN_PROGRESS → NOT_STARTED, but Valithria's respawn timer was set to 7 days (spawntimesecs) → invisible until instance reset.
+- **SetBossState(DONE) on kill:** Boss state was never set to DONE after a successful encounter. It is now set in the `EVENT_DREAM_SLIP` handler in `UpdateAI` (initially it was set in `HealReceived()` at 100% health, but that blocked `EVENT_DREAM_SLIP` from ever executing because `UpdateAI` returns early unless the state is IN_PROGRESS — the Dream Slip spell never landed, so the Lich King controller never cast SPELL_SPAWN_CHEST and no loot chest spawned; that is why Valithria appeared to drop no loot). Without the DONE state, the state stayed IN_PROGRESS; on re-entry `ReadSaveDataBossStates` converted IN_PROGRESS → NOT_STARTED, but Valithria's respawn timer was set to 7 days (spawntimesecs) → invisible until instance reset.
 - **Respawn Archmages after wipe:** Risen Archmages killed early corpse-decay and leave the world; the existing `CreatureWorker` can't reach them. New code iterates `map->GetCreatureRespawnTimes()` and forces respawn of `NPC_RISEN_ARCHMAGE` and `NPC_VALITHRIA_DREAMWALKER` at `GameTime + 11s`.
 - **DespawnOrUnsummon replacement:** Replaced `RemoveCorpse(false)` + `SetRespawnTime(11)` with `DespawnOrUnsummon(0ms, 11s)` which works even after corpse decay.
 - **Wipe detection:** Custom `UpdateAI` checks if any player is alive during `IN_PROGRESS`; if all dead, calls `DoAction(ACTION_DEATH)` to reset the encounter.
@@ -116,6 +116,33 @@ Three-part change:
 3. **SQL (applied via `2026_07_31_00_worldboss_rework.sql`):** respawn 15 min (`spawntimesecs` 900), game events 201/203/204/205/206 extended to 26h so last respawn never crosses the event window, Draco relocated from Felwood river-level to valid Winterspring ground, HP/damage bumps (Devastador 240/45, Golem 240, Profeta 240), new NPC 902024 + materials/Naxx loot rows.
 
 **Diff:** ~10-40 lines per .cpp (largest: Draco +~75).
+
+### 11. World Bosses �?" Shared base class + Dragon breath fix + CC immunities (2026-08-03)
+
+**Files:**
+- `src/server/scripts/Custom/boss_nerubian_shared.h` �?" NEW. Shared `NerubianWorldBossAI` (derives from `WorldBossAI`).
+- all 5 `src/server/scripts/Custom/boss_nerubian_*.cpp` �?" refactored to inherit the shared base.
+
+**1. Shared base class (`boss_nerubian_shared.h`):** centralizes the duplicated framework that every boss had:
+- `ApplyPlayerScaling()` (HP/DMG x players/20, clamp 1x�?"3x), `GiveClassLoot()` via retail bag 20367 + 250-500g, anti-kite (SummonPlayer 24776 > 50yd).
+- `ApplyBossImmunities()` �?" NEW: `ApplySpellImmune(0, IMMUNITY_MECHANIC, ...)` for **STUN, FREEZE, KNOCKOUT, POLYMORPH, CHARM, SLEEP, FEAR, HORROR, BANISH, DISORIENTED, SAPPED**. All bosses are now stun-immune (bosses were stunnable before).
+- Clean virtual hooks used by each script: `ResetBossState()`, `ScheduleBossEvents()`, `ExecuteBossEvent()`, `OnEngaged()`, `OnJustDied()`. Base `UpdateAI` handles victim check + anti-kite event; phase stage (`_stage`) shared.
+- Refactor is pure duplication-removal; each boss keeps its own mechanics/timers/phase logic in `ExecuteBossEvent()`/`DamageTaken()`.
+
+**2. Draco Frost Breath fix (28522 �?" 69527):** `SPELL_FROST_BREATH` was `28522` = **Icebolt** (Sapphiron's 25s ice-block stun), so every "breath" froze the entire raid for ~24s and bypassed stun/immunity. Now `69527` = proper dragon **Frost Breath** (frost damage + melee haste penalty, no stun).
+
+**3. Draco banish 12s �?" 8s:** `_banishedTimer` 12000 �?" 8000 (phase adds phase at 75/50/25%).
+
+**4. SQL buff (in `2026_07_31_01_worldboss_consolidated.sql`):** 4 bosses buffed (Draco kept as baseline reference):
+
+| Boss | HealthMod | DamageMod |
+|------|:--------:|:---------:|
+| Devastador 902006 | 240 �?" 320 | 45 �?" 70 |
+| Viuda 902020 | 200 �?" 280 | 40 �?" 65 |
+| Golem 902021 | 240 �?" 320 | 40 �?" 65 |
+| Profeta 902022 | 240 �?" 320 | 40 �?" 65 |
+
+**Diff:** +1 new header (~90 lines), ~60-100 lines removed per .cpp (duplicated framework), Draco spell id + timer change.
 
 ### 6. Submodules added
 

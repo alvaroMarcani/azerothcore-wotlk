@@ -318,6 +318,7 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_SEND_MONEY                             = 487,
     RBAC_PERM_COMMAND_ADDITEM                                = 488,
     RBAC_PERM_COMMAND_ADDITEMSET                             = 489,
+    RBAC_PERM_COMMAND_ADDITEM_ANY_TARGET                     = 100000,
     RBAC_PERM_COMMAND_APPEAR                                 = 490,
     RBAC_PERM_COMMAND_AURA                                   = 491,
     RBAC_PERM_COMMAND_BANK                                   = 492,

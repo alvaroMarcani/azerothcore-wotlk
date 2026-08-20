@@ -1779,6 +1779,16 @@ public:
         if (!playerTarget)
             return false;
 
+        // CUSTOM: GMs de nivel 3 solo pueden añadir/quitar items sobre si mismos
+        if (Player* executor = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr)
+        {
+            if (executor != playerTarget && !handler->HasPermission(rbac::RBAC_PERM_COMMAND_ADDITEM_ANY_TARGET))
+            {
+                handler->SendErrorMessage("No tienes permiso para dar/quitar items a otros jugadores.");
+                return false;
+            }
+        }
+
         // Subtract
         if (count < 0)
         {
@@ -1868,6 +1878,13 @@ public:
         if (!playerTarget)
         {
             playerTarget = player;
+        }
+
+        // CUSTOM: GMs de nivel 3 solo pueden añadir sets sobre si mismos
+        if (playerTarget != player && !handler->HasPermission(rbac::RBAC_PERM_COMMAND_ADDITEM_ANY_TARGET))
+        {
+            handler->SendErrorMessage("No tienes permiso para dar items a otros jugadores.");
+            return false;
         }
 
         bool found = false;

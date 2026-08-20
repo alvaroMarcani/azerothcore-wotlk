@@ -156,6 +156,21 @@ Three-part change:
 
 Deleted `env/dist/.gitkeep`, `env/dist/etc/.gitkeep`, `env/dist/logs/.gitkeep`.
 
+### 12. GM additem — Self-only for level-3 GMs (2026-08-19)
+
+**Files:** `src/server/game/Accounts/RBAC.h`, `src/server/scripts/Commands/cs_misc.cpp`
+
+New RBAC permission `RBAC_PERM_COMMAND_ADDITEM_ANY_TARGET = 100000` (row `(100000, 'Command: additem any target')` must exist in `acore_auth.rbac_permissions`).
+
+`HandleAddItemCommand` and `HandleAddItemSetCommand` now deny when the target player differs from the executing player UNLESS the session holds permission `RBAC_PERM_COMMAND_ADDITEM_ANY_TARGET` (granted only to gmlevel-4 accounts via role 100004). Console/SOAP sessions (no player) are unaffected.
+
+This works together with the auth DB script `sql/custom/db_auth/2026_08_19_00_gm_level4_rbac.sql` which:
+- sets gmlevel 4 as the top tier (default role 192, full admin),
+- restricts gmlevel 3 to role 100003 (admin minus `.server*`, `.send items/mail/money`, additem-to-others),
+- moves those dangerous commands + permission 100000 into level-4-only role 100004.
+
+**Diff:** +1 line RBAC.h, +9 lines per handler in cs_misc.cpp (marked `// CUSTOM:`).
+
 ## Tracking
 
 - Created: 2026-07-01

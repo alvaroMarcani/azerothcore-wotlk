@@ -38,7 +38,8 @@ Removed the defender-only check from `spell_wintergrasp_portal`. Previously: `wi
 
 Three fixes:
 - ~~**SetBossState(DONE) on kill**~~ **REVERTED 2026-08-21.** A custom `_instance->SetBossState(DONE)` was added on 2026-07-30 (commit dffeb46, image v25) in `HealReceived()` under the false premise that upstream never sets DONE. **Upstream DOES set DONE**: `SpellHit` (on SPELL_DREAM_SLIP hit) → `Unit::Kill(me, trigger)` → trigger's `BossAI::_JustDied()` → `SetBossState(DONE)` (`Unit.cpp` → `ai->JustDied(killer)`). The custom line in `HealReceived()` blocked `EVENT_DREAM_SLIP` forever (UpdateAI's `!= IN_PROGRESS` guard) → Dream Slip never cast → SpellHit never ran → **no loot chest** (the "no loot" bug reported 08-2026). Moving it into `EVENT_DREAM_SLIP` (commit 236e7ea, v28) was redundant: nothing in the DONE transition interrupts the pending Dream Slip cast or the chest flow (verified: no module hooks, `UpdateMinionState` no-op on DONE, movement interrupt is player-only). **Current state: 100% upstream for the success path.** The 7-day respawn concern is moot: DB `spawntimesecs` is now 300s and DONE bosses don't respawn anyway.
-- **Respawn Archmages after wipe:** Risen Archmages killed early corpse-decay and leave the world; the existing `CreatureWorker` can't reach them. New code iterates `map->GetCreatureRespawnTimes()` and forces respawn of `NPC_RISEN_ARCHMAGE` and `NPC_VALITHRIA_DREAMWALKER` at `GameTime + 11s`.
+- **2026-08-24 merge (upstream #26682):** upstream ported TrinityCore's archmage summon groups — Risen Archmages are now SUMMONED via `SummonCreatureGroup` (DB `creature_summon_groups`) instead of permanent spawns, re-summoned on every Valithria Reset. Adopted as-is (AC es fuente de verdad); the "archmages gone after corpse decay" problem the loop below solved no longer exists under this model. The wipe/respawn custom block below is RETAINED (no interference): it still forces the 11s reset after a wipe; its `GetCreatureRespawnTimes()` loop now effectively only matches the two permanent Valithria spawns (aligned with her own 11s despawn).
+- **Respawn Archmages after wipe:** Risen Archmages killed early corpse-decay and leave the world; the existing `CreatureWorker` can't reach them. New code iterates `map->GetCreatureRespawnTimes()` and forces respawn of `NPC_RISEN_ARCHMAGE` and `NPC_VALITHRIA_DREAMWALKER` at `GameTime + 11s`. *(Post-merge: solo aplica a los spawns permanentes de Valithria; ver nota de arriba.)*
 - **DespawnOrUnsummon replacement:** Replaced `RemoveCorpse(false)` + `SetRespawnTime(11)` with `DespawnOrUnsummon(0ms, 11s)` which works even after corpse decay.
 - **Wipe detection:** Custom `UpdateAI` checks if any player is alive during `IN_PROGRESS`; if all dead, calls `DoAction(ACTION_DEATH)` to reset the encounter.
 
@@ -181,10 +182,22 @@ In-game GM accounts keep the original restriction (can't set a level >= their ow
 
 **Diff:** +1 condition line in cs_account.cpp (marked `// CUSTOM:`).
 
+### 14. Upstream sync 2026-08-24 — adaptación de comandos GM (merge ca8e6d78)
+
+Merge de upstream master (+621 commits desde be01c9f). Adaptaciones sobre los cambios upstream de comandos para preservar nuestro esquema (gmlevel 4 top tier / gmlevel 3 restringido / permiso 100000):
+
+- **cs_misc.cpp — `.additem` con targets offline (#26714):** upstream eliminó el early-return de `playerTarget` para soportar remover items de jugadores offline vía DB. Nuestro guard RBAC 100000 se re-aplicó adaptado: comparación por **GUID** (`player->GetGUID() != executor->GetGUID()`) en vez de puntero, así cubre también targets offline. Consola/SOAP sigue exenta (sin sesión). El guard de `.additemset` auto-fusionó sin cambios.
+- **cs_account.cpp — fix realm -1 (#27088):** el fix upstream (bloqueo de escalada vía `gmRealmID == -1` cuando el target tiene rank mayor en otro realm) convive con nuestra exención de consola; ambos guards respetan `IsConsoleAccount`.
+- **TradeHandler.cpp — clustering (#16832):** el rewrite de clustering mantuvo intacta la condición de facción; nuestro bypass `IsInSameRaidWith` sobrevivió sin edición. Upstream añadió encima la restricción de trade para trial accounts (nueva feature, aceptada).
+- **Valithria:** adoptado el modelo summon groups de upstream #26682 (ver sección 3).
+- **RBAC.h:** permiso 100000 conservado junto a los nuevos perms upstream (`ACCOUNT_FLAG_*`, `ACCOUNT_INFO`, etc.).
+
+**Nuevos seeds RBAC upstream:** los comandos migrados a RBAC (#26607: autobroadcast/mail/npc/pool/spellinfo) requieren sus filas nuevas en `acore_auth.rbac_permissions`/`rbac_linked_permissions` — aplicar el update `pending_db_auth` correspondiente al habilitar el updater.
+
 ## Tracking
 
 - Created: 2026-07-01
 - Upstream base: `be01c9f` (AzerothCore master, Jul 2026)
-- Last merge: 271 commits ahead
+- Last merge: 2026-08-24, sync completo hasta `ca8e6d78` (+621 commits)
 
 To see diff of all custom changes: `git diff be01c9f..HEAD -- src/ CMakeLists.txt .gitmodules`

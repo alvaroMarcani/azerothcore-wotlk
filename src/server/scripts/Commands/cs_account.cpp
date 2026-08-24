@@ -789,8 +789,9 @@ public:
 
         // can set security level only for target with less security and to less security that we have
         // This is also reject self apply in fact
+        // CUSTOM: console (SEC_CONSOLE) is exempt so it can promote accounts to the top tier (gmlevel 4)
         targetSecurity = AccountMgr::GetSecurity(targetAccountId, gmRealmID);
-        if (targetSecurity >= playerSecurity || gm >= playerSecurity)
+        if (!AccountMgr::IsConsoleAccount(playerSecurity) && (targetSecurity >= playerSecurity || gm >= playerSecurity))
         {
             handler->SendErrorMessage(LANG_YOURS_SECURITY_IS_LOW);
             return false;

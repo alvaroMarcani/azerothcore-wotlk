@@ -32,17 +32,17 @@ Removed the defender-only check from `spell_wintergrasp_portal`. Previously: `wi
 
 **Diff:** `- (wintergrasp->GetDefenderTeam() != target->GetTeamId())`
 
-### 3. Valithria Dreamwalker — Wipe reset, DONE state & respawn fixes
+### 3. Valithria Dreamwalker — Wipe reset & respawn fixes
 
 **File:** `src/server/scripts/Northrend/IcecrownCitadel/boss_valithria_dreamwalker.cpp`
 
-Four fixes:
-- **SetBossState(DONE) on kill:** Boss state was never set to DONE after a successful encounter. It is now set in the `EVENT_DREAM_SLIP` handler in `UpdateAI` (initially it was set in `HealReceived()` at 100% health, but that blocked `EVENT_DREAM_SLIP` from ever executing because `UpdateAI` returns early unless the state is IN_PROGRESS — the Dream Slip spell never landed, so the Lich King controller never cast SPELL_SPAWN_CHEST and no loot chest spawned; that is why Valithria appeared to drop no loot). Without the DONE state, the state stayed IN_PROGRESS; on re-entry `ReadSaveDataBossStates` converted IN_PROGRESS → NOT_STARTED, but Valithria's respawn timer was set to 7 days (spawntimesecs) → invisible until instance reset.
+Three fixes:
+- ~~**SetBossState(DONE) on kill**~~ **REVERTED 2026-08-21.** A custom `_instance->SetBossState(DONE)` was added on 2026-07-30 (commit dffeb46, image v25) in `HealReceived()` under the false premise that upstream never sets DONE. **Upstream DOES set DONE**: `SpellHit` (on SPELL_DREAM_SLIP hit) → `Unit::Kill(me, trigger)` → trigger's `BossAI::_JustDied()` → `SetBossState(DONE)` (`Unit.cpp` → `ai->JustDied(killer)`). The custom line in `HealReceived()` blocked `EVENT_DREAM_SLIP` forever (UpdateAI's `!= IN_PROGRESS` guard) → Dream Slip never cast → SpellHit never ran → **no loot chest** (the "no loot" bug reported 08-2026). Moving it into `EVENT_DREAM_SLIP` (commit 236e7ea, v28) was redundant: nothing in the DONE transition interrupts the pending Dream Slip cast or the chest flow (verified: no module hooks, `UpdateMinionState` no-op on DONE, movement interrupt is player-only). **Current state: 100% upstream for the success path.** The 7-day respawn concern is moot: DB `spawntimesecs` is now 300s and DONE bosses don't respawn anyway.
 - **Respawn Archmages after wipe:** Risen Archmages killed early corpse-decay and leave the world; the existing `CreatureWorker` can't reach them. New code iterates `map->GetCreatureRespawnTimes()` and forces respawn of `NPC_RISEN_ARCHMAGE` and `NPC_VALITHRIA_DREAMWALKER` at `GameTime + 11s`.
 - **DespawnOrUnsummon replacement:** Replaced `RemoveCorpse(false)` + `SetRespawnTime(11)` with `DespawnOrUnsummon(0ms, 11s)` which works even after corpse decay.
 - **Wipe detection:** Custom `UpdateAI` checks if any player is alive during `IN_PROGRESS`; if all dead, calls `DoAction(ACTION_DEATH)` to reset the encounter.
 
-**Diff:** +58 lines, new include `<GameTime.h>`.
+**Diff:** +58 lines, new include `<GameTime.h>`. No custom code on the success/Dream Slip path.
 
 ### 4. Halls of Reflection — Boss immunity + evade fix
 
@@ -170,6 +170,16 @@ This works together with the auth DB script `sql/custom/db_auth/2026_08_19_00_gm
 - moves those dangerous commands + permission 100000 into level-4-only role 100004.
 
 **Diff:** +1 line RBAC.h, +9 lines per handler in cs_misc.cpp (marked `// CUSTOM:`).
+
+### 13. Console can set gmlevel 4 (2026-08-20)
+
+**File:** `src/server/scripts/Commands/cs_account.cpp`
+
+`HandleAccountSetGmLevelCommand` refuses any `gm >= playerSecurity`. Since the console runs with `playerSecurity = SEC_CONSOLE = 4`, it could never promote an account to the top tier (gmlevel 4). The console is now exempt from that check (same exemption pattern already used a few lines below for the `gmRealmID == -1` rank check): `if (!AccountMgr::IsConsoleAccount(playerSecurity) && (targetSecurity >= playerSecurity || gm >= playerSecurity))`.
+
+In-game GM accounts keep the original restriction (can't set a level >= their own).
+
+**Diff:** +1 condition line in cs_account.cpp (marked `// CUSTOM:`).
 
 ## Tracking
 

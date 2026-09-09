@@ -194,10 +194,21 @@ Merge de upstream master (+621 commits desde be01c9f). Adaptaciones sobre los ca
 
 **Nuevos seeds RBAC upstream:** los comandos migrados a RBAC (#26607: autobroadcast/mail/npc/pool/spellinfo) requieren sus filas nuevas en `acore_auth.rbac_permissions`/`rbac_linked_permissions` — aplicar el update `pending_db_auth` correspondiente al habilitar el updater.
 
+### 15. Upstream sync 2026-09-09 — merge 75ca8559 (+196 commits, ca8e6d78 → 75ca8559)
+
+Merge limpio: **ninguno de los 196 commits upstream tocó nuestros archivos custom** (TradeHandler, cs_account, cs_misc, RBAC.h, Valithria, Falric/Marwyn, Wintergrasp, ChannelHandler). Único conflicto: `AGENTS.md` (reescritura upstream, sin contenido custom nuestro) — resuelto tomando upstream.
+
+Cambios relevantes para nosotros (solo contexto, sin adaptación requerida):
+- **Ulduar (25 commits):** rework grande de vehículos de Flame Leviathan (respawn, límite de 2 monturas, aggro, approach arc, escalado de gear por vehículo, tar despawn), Yogg-Saron (8 Guardians en fase 1, Constrictor Tentacle escape limitado, Grim Reprisal sin reflect a totems), Thorim CC pack + NPCs, Freya roots despawn en wipe, Kologarn hard reset, Formation Grounds teleporter usable en wipe. **Relevant QA: Ulduar sanity** tras este rework (ver pendiente QA in-game).
+- **Core (32 commits):** port del rewrite de combat/threat (#27347 + fix #27347), hook `UnitAI::OnDespawn` (#27285), taxi flight speed configurable (#27183), fix de estado inválido al polimorfar/miedo a un MC'ing priest (#27263), e2e suite de protocolo live (#27158).
+- **DB (121 commits):** fixes de quests/spawns/SAI varios (LBRS patrols, Champion of Hodir Freezing Breath al 2º threat, Keleseth, Mord'rethar, CoT Stratholme specimens, The Hunter and the Prince restaurada, Gortok sonidos, Nishera patrulla, Decrepit Clefthoof despawn, Gnomeregan boss damage).
+
+**Nota updates DB:** ~121 updates `db_world` nuevos (2026_08_25_00 → 2026_09_09_00) — se aplicarán con `AC_UPDATES_ENABLE_DATABASES=7` en el próximo arranque del worldserver local/VPS. Ninguno interfiere con contenido custom (Nerubian Store, world bosses, etérea) — verificado por área: no hay updates tocando entries 900000+ ni 970xxx.
+
 ## Tracking
 
 - Created: 2026-07-01
 - Upstream base: `be01c9f` (AzerothCore master, Jul 2026)
-- Last merge: 2026-08-24, sync completo hasta `ca8e6d78` (+621 commits)
+- Last merge: 2026-09-09, sync completo hasta `75ca8559` (+196 commits desde ca8e6d78)
 
 To see diff of all custom changes: `git diff be01c9f..HEAD -- src/ CMakeLists.txt .gitmodules`

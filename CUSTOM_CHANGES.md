@@ -216,24 +216,30 @@ Cambios relevantes para nosotros (solo contexto, sin adaptaciÃ³n requerida):
 - El patch ademÃ¡s: des-ignora `data/sql/custom/db_{auth,characters,world}` en `.gitignore` (los SQLs NPCBots se commitean) y aÃ±ade `src/server/game/AI/NpcBots/` (63 archivos).
 
 **SQL (pipeline AC, sin duplicar):**
-- `data/sql/base/db_characters/characters_npcbot*.sql` (4) + `data/sql/base/db_world/creature_template_npcbot_appearance/extras/outfits.sql` (3): tablas base. **Solo se auto-aplican en DBs vacÃ­as** (AutoSetup) â†’ en DB existente se aplicaron a mano (2026-09-09). Locale esES de bot texts (`data/sql/Bots/locales/esES/npc_text_locale.sql`) tambiÃ©n aplicado a mano (server en espaÃ±ol).
-- `data/sql/custom/db_{auth,characters,world}/*.sql` (~75): se aplican solos vÃ­a `ac-db-import` (dbimport escanea `updates_include` â†’ `$/data/sql/custom/db_*` estado CUSTOM, registra en `updates`). Verificado: 127 CUSTOM en acore_world, 138 queries aplicadas.
-- **Trampa encontrada:** el bind-mount `./sql/custom/db_auth:/azerothcore/data/sql/custom/db_auth` del override REEMPLAZA el directorio completo â†’ los 2 SQLs RBAC de NPCBots (auth) NO llegaban a la imagen. Fix: copiados a `sql/custom/db_auth/` del repo wownerubian (mount host) + re-run de ac-db-import.
+- `data/sql/base/db_characters/characters_npcbot*.sql` (4) + `data/sql/base/db_world/creature_template_npcbot_appearance/extras/outfits.sql` (3): tablas base. **Solo se auto-aplican en DBs vacías** (AutoSetup). Para DBs existentes se transformaron en el repo wownerubian (`sql/custom/`): sin DROP, `CREATE TABLE IF NOT EXISTS` + `INSERT IGNORE` — **prefijo `0000-00-00_` OBLIGATORIO** (los updates del patch hacen `ALTER TABLE` sobre las tablas base y fallan con 1146 si el base ordena después). Locale esES de bot texts (`data/sql/Bots/locales/esES/npc_text_locale.sql`) igualmente transformado (DELETE+INSERT, idempotente).
+- `data/sql/custom/db_{auth,characters,world}/*.sql` (~75): se aplican solos vía `ac-db-import` (dbimport escanea `updates_include` → `$/data/sql/custom/db_*` estado CUSTOM, registra en `updates`). Verificado: 127 CUSTOM en acore_world, 138 queries aplicadas.
+- **Trampa encontrada:** el bind-mount `./sql/custom/db_auth:/azerothcore/data/sql/custom/db_auth` del override REEMPLAZA el directorio completo → los 2 SQLs RBAC de NPCBots (auth) NO llegaban a la imagen. Fix: copiados a `sql/custom/db_auth/` del repo wownerubian (mount host) + re-run de ac-db-import.
 
-**RBAC (adaptaciÃ³n a nuestro esquema, SQL `sql/custom/db_auth/2026_09_09_00_npcbot_rbac_roles.sql`):**
-El patch linkea los perms NPCBot a los roles AC estÃ¡ndar 196 (GM4)/197 (GM3)/199 (player), que **no existen** en nuestro esquema post-refactor (gm3=100003, gm4=192, player=195). Re-linkeados:
+**RBAC (adaptación a nuestro esquema, SQL `sql/custom/db_auth/2026_09_09_00_npcbot_rbac_roles.sql`):**
+El patch linkea los perms NPCBot a los roles AC estándar 196 (GM4)/197 (GM3)/199 (player), que **no existen** en nuestro esquema post-refactor (gm3=100003, gm4=192, player=195). Re-linkeados:
 
 | Rol nuestro | Perms NPCBot | Fuente |
 |---|---|---|
-| 192 (gm4) | 20 (admin: dump, createnew, add/spawn/kill/â€¦) | 196+197 |
-| 100003 (gm3) | 20 (idem, sin dump/createnewâ€¦ ) | 196+197 |
-| 195 (player) | 17 (player commands: base, info, hide, recall, follow, standstillâ€¦) | 199 |
+| 192 (gm4) | 20 (admin: dump, createnew, add/spawn/kill…) | 196+197 |
+| 100003 (gm3) | 20 (idem, sin dump/createnew…) | 196+197 |
+| 195 (player) | 17 (player commands: base, info, hide, recall, follow, standstill…) | 199 |
 
-Los roles 196/197/199 siguen existiendo con sus links originales (huÃ©rfanos, sin uso).
+Los roles 196/197/199 siguen existiendo con sus links originales (huérfanos, sin uso).
 
-**Config:** secciÃ³n `# NPCBOT CONFIGURATION` completa (847 lÃ­neas del `worldserver.conf.dist`) aÃ±adida a `var/etc/worldserver.conf` + `Appender.NpcBots=1,2,0` + `Logger.npcbots=2,NpcBots Server`. Cambio sobre defaults: **`NpcBot.Enable.Raid = 1`** (objetivo: compaÃ±eros para raids). Resto defaults: Enable=1, Dungeon=1, BG/Arena=0, DungeonFinder=1, Cost.Hire=1000000 (100g), MaxBots=39.
+**Config (repo wownerubian `var/etc/worldserver.conf`):** sección `# NPCBOT CONFIGURATION` completa (847 líneas del `worldserver.conf.dist`) + `Appender.NpcBots=1,2,0` + `Logger.npcbots=2,NpcBots Server`. Cambios sobre defaults:
+- `NpcBot.Enable.Raid = 1` (objetivo: compañeros para raids)
+- `NpcBot.HideSpawns = 0` (bots libres spawneados siempre visibles/contratables)
+- `NpcBot.Cost.Hire = 200000000` (20,000g base a lvl 80; escala por nivel <10=10g … 40-79=10-19.8kg; clases ex ×2/×5)
+- `NpcBot.WanderingBots.Continents.Count = 30` (test con 316 confirmó máximo sin duplicar templates: 317 − contratados; ASSERT si desired > spare)
 
-**Imagen:** `alvarexp7/ac-wotlk-worldserver:v33` (+latest). QA local: `NPCBots config loaded / system enabled`, tablas cargadas sin errores, `.npcbot` y `.npcbot lookup` responden por SOAP, `.reload rbac` OK.
+**Contenido custom adicional (repo wownerubian):** spawn del Botgiver Lagretta (70000, guid 903001, Tienda Etérea) + 13 nodos de wander urbanos (ids 10000-10014, SW/OG/Dalaran — coords validadas de NPCs existentes; los nodos del patch en Dalaran están bajo la plataforma, no reutilizados).
+
+**Imagen:** `alvarexp7/ac-wotlk-worldserver:v33` (+latest). QA local: `NPCBots config loaded / system enabled`, tablas cargadas sin errores, `.npcbot` y `.npcbot lookup` responden por SOAP, `.reload rbac` OK, 1 bot contratado en QA. Memoria: 30 wanderers ≈ +260 MB; 316 ≈ +0.3-0.5 GB (grids compartidas, no lineal).
 
 ## Tracking
 

@@ -50,6 +50,7 @@ static uint32 _npcBotUpdateDelayBase;
 static uint32 _npcBotEngageDelayDPS_default;
 static uint32 _npcBotEngageDelayHeal_default;
 static uint32 _npcBotOwnerExpireTime;
+static uint32 _npcBotOwnerOfflineExpireTime;
 static uint32 _desiredWanderingBotsCount;
 static uint32 _killrewardWandererMoneyBase;
 static uint32 _killrewardWandererItemCount;
@@ -392,6 +393,7 @@ private:
         _npcBotEngageDelayHeal_default  = sConfigMgr->GetIntDefault("NpcBot.EngageDelay.Heal", 0);
         _npcBotOwnerExpireTime          = sConfigMgr->GetIntDefault("NpcBot.OwnershipExpireTime", 0);
         _npcBotOwnerExpireMode          = sConfigMgr->GetIntDefault("NpcBot.OwnershipExpireMode", 0);
+        _npcBotOwnerOfflineExpireTime   = sConfigMgr->GetIntDefault("NpcBot.OwnershipOfflineExpireTime", 0); //CUSTOM
         _botPvP                         = sConfigMgr->GetBoolDefault("NpcBot.PvP", true);
         _botMovementFoodInterrupt       = sConfigMgr->GetBoolDefault("NpcBot.Movements.InterruptFood", false);
         _displayEquipment               = sConfigMgr->GetBoolDefault("NpcBot.EquipmentDisplay.Enable", true);
@@ -1090,6 +1092,10 @@ uint32 BotCfg::GetOwnershipExpireTime()
 uint8 BotCfg::GetOwnershipExpireMode()
 {
     return _npcBotOwnerExpireMode;
+}
+uint32 BotCfg::GetOwnershipOfflineExpireTime() //CUSTOM
+{
+    return _npcBotOwnerOfflineExpireTime;
 }
 uint32 BotCfg::GetDesiredWanderingBotsCount()
 {

@@ -312,14 +312,14 @@ bool bot_ai::SetBotOwner(Player* newowner)
         return true;
 
     master = newowner;
-    _checkOwershipTimer = BotCfg::GetOwnershipExpireTime() ? CalculateOwnershipCheckTime() : 0;
+    _checkOwershipTimer = (BotCfg::GetOwnershipExpireTime() || BotCfg::GetOwnershipOfflineExpireTime()) ? CalculateOwnershipCheckTime() : 0; //CUSTOM offline expire
 
     return true;
 }
 //Check if should totally unlink from owner
 void bot_ai::CheckOwnerExpiry()
 {
-    if (!BotCfg::GetOwnershipExpireTime())
+    if (!BotCfg::GetOwnershipExpireTime() && !BotCfg::GetOwnershipOfflineExpireTime()) //CUSTOM offline expire
         return; //disabled
 
     if (IsTempBot() || me->IsSummon() || !IAmFree())
@@ -333,22 +333,29 @@ void bot_ai::CheckOwnerExpiry()
     time_t expireTime = time_t(BotCfg::GetOwnershipExpireTime());
     time_t baseTimeStamp;
 
+    uint32 accId = sCharacterCache->GetCharacterAccountIdByGuid(ownerGuid);
+    QueryResult result = accId ? CharacterDatabase.Query("SELECT MAX(logout_time) FROM characters WHERE account = {}", accId) : nullptr;
+
+    Field* fields = result ? result->Fetch() : nullptr;
+    time_t lastLogoutTime = fields ? time_t(fields[0].Get<uint32>()) : timeNow;
+
     if (BotCfg::GetOwnershipExpireMode() == BOT_OWNERSHIP_EXPIRE_OFFLINE)
     {
-        uint32 accId = sCharacterCache->GetCharacterAccountIdByGuid(ownerGuid);
-        QueryResult result = accId ? CharacterDatabase.Query("SELECT MAX(logout_time) FROM characters WHERE account = {}", accId) : nullptr;
-
-        Field* fields = result ? result->Fetch() : nullptr;
-        time_t lastLoginTime = fields ? time_t(fields[0].Get<uint32>()) : timeNow;
-        baseTimeStamp = lastLoginTime;
+        baseTimeStamp = lastLogoutTime;
     }
     else //if (BotCfg::GetOwnershipExpireMode() == BOT_OWNERSHIP_EXPIRE_HIRE)
     {
         baseTimeStamp = time_t(_botData->hire_time);
     }
 
+    //CUSTOM: offline grace period - bot stays reserved at least X seconds after the owner's
+    //last logout, in addition to the (mode-based) ownership expiry deadline.
+    time_t deadline = baseTimeStamp + expireTime;
+    if (uint32 offlineExpire = BotCfg::GetOwnershipOfflineExpireTime())
+        deadline = std::max<time_t>(deadline, lastLogoutTime + time_t(offlineExpire));
+
     //either expired or owner does not exist
-    if (timeNow >= baseTimeStamp + expireTime)
+    if (timeNow >= deadline)
     {
         std::string name = "unknown";
         sCharacterCache->GetCharacterNameByGuid(ownerGuid, name);
@@ -458,7 +465,7 @@ void bot_ai::ResetBotAI(uint8 resetType)
         _rentTimer = 0;
     if (resetType == BOTAI_RESET_INIT || resetType == BOTAI_RESET_LOGOUT)
     {
-        _checkOwershipTimer = (BotCfg::GetOwnershipExpireTime() && _botData->owner) ? (resetType == BOTAI_RESET_INIT) ? 1000 : CalculateOwnershipCheckTime() : 0;
+        _checkOwershipTimer = ((BotCfg::GetOwnershipExpireTime() || BotCfg::GetOwnershipOfflineExpireTime()) && _botData->owner) ? (resetType == BOTAI_RESET_INIT) ? 1000 : CalculateOwnershipCheckTime() : 0; //CUSTOM offline expire
         if (resetType == BOTAI_RESET_INIT)
             homepos.Relocate(me);
         else //if (resetType == BOTAI_RESET_LOGOUT)
@@ -15395,10 +15402,14 @@ uint32 bot_ai::CalculateOwnershipCheckTime()
     if (!_botData->owner)
         return 0;
 
-    if (!IAmFree() || BotCfg::GetOwnershipExpireMode() == BOT_OWNERSHIP_EXPIRE_OFFLINE)
-        return static_cast<uint32>(std::min<uint32>(BotCfg::GetOwnershipExpireTime(), urand(3 * MINUTE, 7 * MINUTE)) * IN_MILLISECONDS);
+    uint32 expireTime = BotCfg::GetOwnershipExpireTime();
+    uint32 offlineExpire = BotCfg::GetOwnershipOfflineExpireTime(); //CUSTOM
+    uint32 pollBase = std::min({ expireTime ? expireTime : std::numeric_limits<uint32>::max(), offlineExpire ? offlineExpire : std::numeric_limits<uint32>::max() });
 
-    return static_cast<uint32>(std::max<time_t>(time_t(_botData->hire_time + BotCfg::GetOwnershipExpireTime() + 1) - time(0), 5) * IN_MILLISECONDS);
+    if (offlineExpire || !IAmFree() || BotCfg::GetOwnershipExpireMode() == BOT_OWNERSHIP_EXPIRE_OFFLINE)
+        return static_cast<uint32>(std::min<uint32>(pollBase, urand(3 * MINUTE, 7 * MINUTE)) * IN_MILLISECONDS);
+
+    return static_cast<uint32>(std::max<time_t>(time_t(_botData->hire_time + expireTime + 1) - time(0), 5) * IN_MILLISECONDS);
 }
 
 bool bot_ai::IAmFree() const

@@ -85,6 +85,7 @@ public:
     static uint32 GetBaseUpdateDelay();
     static uint32 GetOwnershipExpireTime();
     static uint8 GetOwnershipExpireMode();
+    static uint32 GetOwnershipOfflineExpireTime(); //CUSTOM
     static uint32 GetDesiredWanderingBotsCount();
     static uint32 GetBGTargetTeamPlayersCount(BattlegroundTypeId bgTypeId);
     static float GetBotHKHonorRate();

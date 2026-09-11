@@ -241,6 +241,28 @@ Los roles 196/197/199 siguen existiendo con sus links originales (huérfanos, si
 
 **Imagen:** `alvarexp7/ac-wotlk-worldserver:v33` (+latest). QA local: `NPCBots config loaded / system enabled`, tablas cargadas sin errores, `.npcbot` y `.npcbot lookup` responden por SOAP, `.reload rbac` OK, 1 bot contratado en QA. Memoria: 30 wanderers ≈ +260 MB; 316 ≈ +0.3-0.5 GB (grids compartidas, no lineal).
 
+### 17. NPCBots ownership — lease 1h + rent + offline grace 10 min (2026-09-11, imagen v34)
+
+**Motivo:** el owner quiere simultáneamente: (a) límite de tiempo de contratación (1h desde el hire), (b) alquiler recurrente por oro, (c) reset de owner si el jugador se desconecta >10 min. El stock solo soporta UNA base de tiempo (`NpcBot.OwnershipExpireMode`, 0=offline ó 1=hire, mutuamente excluyentes).
+
+**Cambio C++ (`src/server/game/AI/NpcBots/`):**
+- `botconfig.h/cpp`: nueva key `NpcBot.OwnershipOfflineExpireTime` (segundos, default 0=disabled) + getter `GetOwnershipOfflineExpireTime()`. Marcado `//CUSTOM`.
+- `bot_ai.cpp` `CheckOwnerExpiry()`: se computa el `MAX(logout_time)` de la cuenta del owner una sola vez; deadline efectivo = `max(baseTimeStamp + OwnershipExpireTime, lastLogout + OwnershipOfflineExpireTime)` donde baseTimeStamp sigue la semántica del modo (0=logout, 1=hire_time). Es decir: el bot queda reservado hasta el deadline de propiedad (lease) Y al menos N segundos tras la última desconexión (lo que sea más tarde).
+- `bot_ai.cpp` `CalculateOwnershipCheckTime()`: si hay offline grace configurado, la cadencia de poll pasa a `min(min(expireTime, offlineExpire), urand(3-7min))` para detectar el deadline offline con prontitud (el cálculo "exacto" de hire sólo aplica sin offline grace).
+- `bot_ai.cpp` líneas 315/322/461: el timer de ownership se arma/desarma considerando AMBAS keys (`||`).
+
+**Config (repo wownerubian `var/etc/worldserver.conf`):**
+- `NpcBot.Cost.Rent = 2000000` (200g/h, cobrado cada 10 min ≈33.3g; si no puede pagar → bot despedido BOT_REMOVE_UNAFFORD, owner reset)
+- `NpcBot.OwnershipExpireTime = 3600` + `NpcBot.OwnershipExpireMode = 1` (lease 1h desde el hire)
+- `NpcBot.OwnershipOfflineExpireTime = 600` (CUSTOM: 10 min de gracia tras la última desconexión)
+
+**Comportamiento resultante:**
+- Jugador online con bot contratado: nunca expira por timer (el check solo corre si el bot está libre/detached) — el "límite" mientras juegas es el RENT.
+- Al desconectar: el bot queda reservado hasta `max(hire+1h, logout+10min)`; si la sesión duró <50 min el lease (1h) es el que manda; si duró >50 min, se libera 10 min tras el logout.
+- Al expirar: equipo devuelto por correo (subject "Bot ownership expired due to inactivity"), owner=0, shared owners limpios, spec/roles a default, sale del grupo. Coste de hire NO se reembolsa; el bot vuelve al pool de Lagretta.
+
+**Imagen:** `alvarexp7/ac-wotlk-worldserver:v34` (+latest).
+
 ## Tracking
 
 - Created: 2026-07-01

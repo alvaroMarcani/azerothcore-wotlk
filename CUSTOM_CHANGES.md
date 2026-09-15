@@ -263,6 +263,40 @@ Los roles 196/197/199 siguen existiendo con sus links originales (huérfanos, si
 
 **Imagen:** `alvarexp7/ac-wotlk-worldserver:v34` (+latest).
 
+### 18. Traducción de módulos al español (2026-09-15, imagen v35)
+
+**Motivo:** los módulos custom mostraban texto en inglés a los jugadores. Auditados los 8 módulos: `mod-transmog` (module_string_locale esES/esMX), `mod-autobalance` (Message.cpp esES/esMX), `mod-breaking-news-override` (HTML ya en español) y `mod-ale` (scripts Lua en español) YA tenían traducción. Traducidos los 4 restantes (hardcode en español, el servidor es esES-only):
+
+- **mod-world-chat** (`src/WorldChat.cpp`): announce de login, mensajes `.chat` (disabled/muted/hidden/visible). ⚠️ No es submodule ni está trackeado en acore-src (gitignored) — los cambios viven solo en la imagen.
+- **mod-anticheat** (submodule): avisos de ban/jail (`AnticheatMgr.cpp`), announce de login (`AnticheatScripts.cpp`), comando `.anticheat warn` + salidas GM (`cs_anticheat.cpp`).
+- **mod-cfbg** (⚠️ gitignored, no submodule): mensajes de `.cfbg race` (`cs_cfbg.cpp`), anuncios de cola BG y "Has Joined" (`CFBG.cpp`).
+- **mod-progression-system** (submodule): `.progression info` (`cs_progression_module.cpp`).
+- **mod-autobalance**: fix menor — faltaba la clave `esMX` de `AB_LEAVING_INSTANCE_COMBAT` (con `ABGetLocaleText` retornando `""` si no existe, el mensaje salía vacío para clientes esMX).
+
+**Imagen:** `alvarexp7/ac-wotlk-worldserver:v35` (+latest).
+
+### 19. Nuevos módulos instalados (2026-09-15): guildhouse, auto-shutdown, boss-announcer, 1v1-arena, war-effort
+
+**Instalados como submodules** (`.gitmodules` + gitlinks en acore-src) y traducidos al español. El SQL y las configs viven en el repo wownerubian (`sql/general/` + `var/etc/modules/` — ver AGENTS.md sección Per-Session 2026-09-15).
+
+| Módulo | Submodule | SQL (repo) | Conf (repo) | Traducción |
+|---|---|---|---|---|
+| mod-guildhouse | ✅ | guildhouse ×5 (db_world) + ×1 (db_characters) | mod_guildhouse.conf | Textos por DB (`mod_guildhouse_locale`, esES completo) + 2 strings C++ a locale table |
+| mod-server-auto-shutdown | ✅ | — | ServerAutoShutdown.conf | Mensaje de anuncio en config (español) |
+| mod-boss-announcer | ✅ | — | mod_boss_announcer.conf | C++ (login announce, wipe, kill) |
+| mod-1v1-arena | ✅ | 1v1_battlemaster.sql (NPC 999991 + npc_text 999992 esES) | 1v1arena.conf | C++ (comandos .q1v1, gossip, cola) |
+| mod-war-effort | ✅ | war_effort ×3 (db_world) + ×1 (db_characters) | mod_aq_war_effort.conf | C++ (mensajes + comando .wareffort) |
+
+**⚠️ NO instalado — mod-player-bot-guildhouse (DustinHendrickson):** requiere `mod-playerbots` (liyunfan1223) — `#include "PlayerbotMgr.h"`/`PlayerbotAI.h` — que NO tenemos (usamos NPCBots/Trinity-Bots, patch del core). Compilaría con error → eliminado del árbol.
+
+**Verificación de compatibilidad con el core (75ca8559 + NPCBots):**
+- mod-boss-announcer: hooks `OnUnitEnterEvadeMode(Unit*, uint8)`/`OnUnitEnterCombat` coinciden con `ScriptMgr.h`; `HasHealSpec`/`HasTankSpec`/`IsDungeonBoss` OK.
+- mod-1v1-arena: `ArenaTeam::ArenaSlotByType`/`ArenaReqPlayersForType`, `BattlegroundMgr::queueToBg`/`ArenaTypeToQueue`/`QueueToArenaType`, hooks `PLAYERHOOK_ON_GET_MAX_PERSONAL_ARENA_RATING_REQUIREMENT`/`ON_GET_ARENA_TEAM_ID`/`NOT_SET_ARENA_TEAM_INFO_FIELD` — todos presentes.
+- mod-guildhouse: `Guild::Member::IsRankNotLower`, `sMapMgr->FindMap`, gossip API estándar.
+- mod-war-effort: TaskScheduler, PlayerScript `PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST`, CharacterDatabase.
+- ⚠️ **Los SQL de módulos NO se instalan en la imagen** (el Dockerfile solo copia `data/`; el DBUpdater busca `SourceDirectory/modules/...` que no existe en runtime) → se copiaron a `sql/general/` del repo wownerubian y los aplica ac-db-import (patrón establecido).
+- ⚠️ mod-war-effort: su SQL borra criaturas base de AQ (`game_event_creature`/`creature` ids 15383-15758, guids 3115xxx) y crea spawns permanentes + guids 311600-311620. Sin colisión con guids custom (901xxx/902xxx/5301xxx). `ModWarEffort.Enable = 0` por defecto (desactivado).
+
 ## Tracking
 
 - Created: 2026-07-01

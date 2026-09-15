@@ -13,3 +13,18 @@
 [submodule "modules/mod-ale"]
 	path = modules/mod-ale
 	url = https://github.com/azerothcore/mod-ale.git
+[submodule "modules/mod-guildhouse"]
+	path = modules/mod-guildhouse
+	url = https://github.com/azerothcore/mod-guildhouse.git
+[submodule "modules/mod-server-auto-shutdown"]
+	path = modules/mod-server-auto-shutdown
+	url = https://github.com/azerothcore/mod-server-auto-shutdown.git
+[submodule "modules/mod-boss-announcer"]
+	path = modules/mod-boss-announcer
+	url = https://github.com/azerothcore/mod-boss-announcer.git
+[submodule "modules/mod-1v1-arena"]
+	path = modules/mod-1v1-arena
+	url = https://github.com/azerothcore/mod-1v1-arena.git
+[submodule "modules/mod-war-effort"]
+	path = modules/mod-war-effort
+	url = https://github.com/azerothcore/mod-war-effort.git

@@ -28,3 +28,6 @@
 [submodule "modules/mod-war-effort"]
 	path = modules/mod-war-effort
 	url = https://github.com/azerothcore/mod-war-effort.git
+[submodule "modules/mod-instance-reset"]
+	path = modules/mod-instance-reset
+	url = https://github.com/azerothcore/mod-instance-reset.git

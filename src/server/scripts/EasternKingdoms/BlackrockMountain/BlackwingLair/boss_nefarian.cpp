@@ -640,8 +640,17 @@ struct boss_nefarian : public BossAI
                     if (classesPresent.empty())
                         for (ThreatReference const* ref : me->GetThreatMgr().GetUnsortedThreatList())
                             if (Unit* victim = ref->GetVictim())
-                                if (victim->IsPlayer())
+                                if (victim->IsPlayer() && victim->IsAlive())
                                     classesPresent.insert(victim->getClass());
+
+                    // CUSTOM: prevent UB/crash when no alive players remain on the threat list
+                    // (e.g. raid wiped and only NPCBots keep fighting -> set stays empty ->
+                    // SelectRandomContainerElement on an empty container -> server segfault -> realm offline).
+                    if (classesPresent.empty())
+                    {
+                        events.ScheduleEvent(EVENT_CLASSCALL, 10s);
+                        break;
+                    }
 
                     uint8 targetClass = Acore::Containers::SelectRandomContainerElement(classesPresent);
 

@@ -297,6 +297,22 @@ Los roles 196/197/199 siguen existiendo con sus links originales (huérfanos, si
 - ⚠️ **Los SQL de módulos NO se instalan en la imagen** (el Dockerfile solo copia `data/`; el DBUpdater busca `SourceDirectory/modules/...` que no existe en runtime) → se copiaron a `sql/general/` del repo wownerubian y los aplica ac-db-import (patrón establecido).
 - ⚠️ mod-war-effort: su SQL borra criaturas base de AQ (`game_event_creature`/`creature` ids 15383-15758, guids 3115xxx) y crea spawns permanentes + guids 311600-311620. Sin colisión con guids custom (901xxx/902xxx/5301xxx). `ModWarEffort.Enable = 0` por defecto (desactivado).
 
+### 20. BWL Nefarian — crash fix: class call con threat list sin jugadores vivos (2026-10-02)
+
+**File:** `src/server/scripts/EasternKingdoms/BlackrockMountain/BlackwingLair/boss_nefarian.cpp`
+
+**Bug (upstream, sin fix en master):** `EVENT_CLASSCALL` rellena `classesPresent` (set de clases) solo con la threat list de Nefarian, y cada class call hace `erase(targetClass)` + reprograma en 30-35s. Si en algún momento **no hay jugadores vivos en la threat list** (p.ej. wipe del grupo real y los NPCBots siguen peleando — los bots no son `IsPlayer()` → el set queda vacío), `SelectRandomContainerElement(classesPresent)` se ejecuta sobre un contenedor vacío → `urand(0, uint32(0)-1 = 4294967295)` → `std::advance` fuera de rango → **UB → segfault del worldserver** → el realm se cae → todos los jugadores en "Conectando".
+
+**Fix aplicado:**
+1. El relleno ahora filtra `victim->IsPlayer() && victim->IsAlive()` (antes solo `IsPlayer()`) — los jugadores muertos ya no cuentan.
+2. Guard `if (classesPresent.empty())` tras el relleno: reprograma `EVENT_CLASSCALL` en 10s y sale del switch (no castea, no crashea).
+
+Mismo patrón de guard que el resto del core (`SelectRandomContainerElementIf` devuelve `end()`; el plain `SelectRandomContainerElement` NO es null-safe — "container cannot be empty").
+
+**Comportamiento tras el fix:** si la raid real está wipeada y solo pelean bots, Nefarian deja de hacer class calls hasta que haya jugadores vivos de nuevo. Sin crash.
+
+**Diff:** +9 líneas en `boss_nefarian.cpp` (marcadas `// CUSTOM:`).
+
 ## Tracking
 
 - Created: 2026-07-01
